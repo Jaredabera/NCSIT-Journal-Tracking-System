@@ -1,4 +1,5 @@
 from tkinter import *
+import tkinter.messagebox
 import datetime
 import csv
 
@@ -25,6 +26,7 @@ def Login():
 
     login = Tk()
     login.geometry("500x400")
+    login.title("Login - NCSIT Journal Tracking System")
 
     login_label = Label(login, text="Login", fg="black")
     login_label.config(font=("Courier", 22))
@@ -44,23 +46,113 @@ def Login():
 
     login.mainloop()
 
-def ArrivalDate():
-    window = Tk()
-    window.geometry("500x400")
+def Admin():
+    """Admin Panel which displays all commands for admin"""
 
-    file = open("arrived_journals.csv", 'a', newline='')
-    writer = csv.writer(file)
+    def logout_admin():
+        """Destroys the window and opens the login screen"""
+
+        admin_panel.destroy()
+        Login()
+
+    admin_panel = Tk()
+    admin_panel.geometry("500x400")
+    admin_panel.title("Admin Panel - NCSIT Journal Tracking System")
+
+    welcome_label = Label(admin_panel, text="Welcome, Admin")
+    welcome_label.config(font=("Courier", 18))
+    welcome_label.place(relx=0.5, rely=0.2, anchor=CENTER)
+
+    review = Button(admin_panel, text="Review Missing Journals", command=calculate_missing_journals)
+    review.place(relx=0.35, rely=0.4, anchor=CENTER)
+
+    arrival_date_button = Button(admin_panel, text="Add arrival date", command=ArrivalDate)
+    arrival_date_button.place(relx=0.65, rely=0.4, anchor=CENTER)
+
+    book_journal_button = Button(admin_panel, text="Book Journal", command=BookJournal)
+    book_journal_button.place(relx=0.35, rely=0.5, anchor=CENTER)
+
+    logout_button = Button(admin_panel, text="Logout", command=logout_admin)
+    logout_button.place(relx=0.65, rely=0.5, anchor=CENTER)
+
+    admin_panel.mainloop()
+
+def calculate_missing_journals():
+    """Calculate all the missing journals and call the display_missing_journals function"""
+
+    missing_journals = []
+
+    file = open("booked_journals.csv", newline='')
+    reader = csv.reader(file)
+    header = next(reader)
+
+    booked_journal = [row for row in reader]
+    # Journal Name,Publish Date,Publisher Type,Date of Booking,Duration,Expiry Date
+    journals_to_consider = []
+    for journal in booked_journal:
+        date_of_booking = datetime.datetime.strptime(journal[3],"%d/%m/%Y")
+        if journal[2] == "Indian" and (datetime.datetime.today() - date_of_booking).days > 15:
+            journals_to_consider.append(journal)
+        elif journal[2] == "International" and (datetime.datetime.today() - date_of_booking).days > 30:
+            journals_to_consider.append(journal)
+
+    file = open("arrived_journals.csv", newline='')
+    reader = csv.reader(file)
+    header = next(reader)
+
+    arrived_journal_names = [row[0] for row in reader]
+
+    missing_journals = [journal for journal in journals_to_consider if journal[0] not in arrived_journal_names]
+    display_missing_journals(missing_journals)
+
+def display_missing_journals(missing_journals):
+    """Displays all the missing journals in a new window"""
+
+    missing = Tk()
+    missing.geometry("500x400")
+    missing.title("Missing Journals - NCSIT Journal Tracking System")
+
+    missing_heading = Label(missing, text="The following Journals haven't arrived yet:")
+    missing_heading.config(font=("Courier", 12))
+    missing_heading.place(relx=0.5, rely=0.1, anchor=CENTER)
+    y = 0.2
+    count = 1
+    for each in missing_journals:
+        # Journal Name,Publish Date,Publisher Type,Date of Booking,Duration,Expiry Date
+        missing_journal_label = Label(missing, text=str(count) + ". " + each[0] + ", booked on: " +  each[3])
+        missing_journal_label.place(relx=0.5, rely=y, anchor=CENTER)
+        y+=0.1
+        count += 1
+
+    missing.mainloop()
+
+def ArrivalDate():
+    """Add arrival date window which lets user select journal and add an arrival date.
+    It stores the result in arrived_journals.csv"""
 
     def on_closing():
+        """Closes the files and flushes the buffer"""
+
         file.close()
         file1.close()
         window.destroy()
 
     def add_arrival_date():
+        """Writes the journal name and arrival date in arrived_journals.csv"""
+
         journal_name = j_name.get()
         arrival_date = arrival_date_entry.get()
 
         writer.writerow([journal_name, arrival_date])
+        tkinter.messagebox.showinfo("Success", "The Arrival Date was successfully added")
+
+
+    window = Tk()
+    window.geometry("500x400")
+    window.title("Add Arrival Date - NCSIT Journal Tracking System")
+
+    file = open("arrived_journals.csv", 'a', newline='')
+    writer = csv.writer(file)
 
     heading = Label(window, text="Add arrival date")
     heading.config(font=("Courier", 20))
@@ -89,7 +181,7 @@ def ArrivalDate():
     j_name.set(journal_options[0]) # default value
 
     journal_options_select = OptionMenu(window, j_name, *journal_options)
-    journal_options_select.place(relx=0.6, rely=0.4, anchor=CENTER)
+    journal_options_select.place(relx=0.5, rely=0.4, anchor=W)
     submit_button = Button(window, text="Add", command=add_arrival_date)
     submit_button.place(relx=0.5,rely=0.6, anchor=CENTER)
 
@@ -97,16 +189,21 @@ def ArrivalDate():
     window.mainloop()
 
 def BookJournal():
+    """Book journal window gives options to select journal and select the subscription
+    type i.e Monthly, Bi-Monthly, Quarterly, Yearly"""
+
     book_window = Tk()
     book_window.geometry("500x400")
+    book_window.title("Book Journal - NCSIT Journal Tracking System")
     booked_journals = []
 
     file = open("booked_journals.csv", 'a', newline='')
     writer = csv.writer(file)
 
     def on_closing():
+        """Closes the files and flushes the buffer"""
+
         file.close()
-        file2.close()
         book_window.destroy()
 
     def book_journal():
@@ -140,6 +237,7 @@ def BookJournal():
         formatted_expiry_date = datetime.datetime.strftime(expiry_date, "%d/%m/%Y")
 
         writer.writerow([journal_name, pub_date, pub_type, formatted_date_of_booking, duration, formatted_expiry_date])
+        tkinter.messagebox.showinfo("Success", "The Journal was successfully booked")
 
     heading = Label(book_window, text="Book Journal")
     heading.config(font=("Courier", 20))
@@ -179,80 +277,18 @@ def BookJournal():
     book_window.protocol("WM_DELETE_WINDOW", on_closing)
     book_window.mainloop()
 
-
-def calculate_missing_journals():
-    """Calculate all the missing journals and call the display_missing_journals function"""
-
-    missing_journals = []
-
-    file = open("booked_journals.csv", newline='')
-    reader = csv.reader(file)
-    header = next(reader)
-
-    booked_journal = [row for row in reader]
-    # Journal Name,Publish Date,Publisher Type,Date of Booking,Duration,Expiry Date
-    journals_to_consider = []
-    for journal in booked_journal:
-        date_of_booking = datetime.datetime.strptime(journal[3],"%d/%m/%Y")
-        if journal[2] == "Indian" and (datetime.datetime.today() - date_of_booking).days > 15:
-            journals_to_consider.append(journal)
-        elif journal[2] == "International" and (datetime.datetime.today() - date_of_booking).days > 30:
-            journals_to_consider.append(journal)
-
-    file = open("arrived_journals.csv", newline='')
-    reader = csv.reader(file)
-    header = next(reader)
-
-    arrived_journal_names = [row[0] for row in reader]
-
-    missing_journals = [journal for journal in journals_to_consider if journal[0] not in arrived_journal_names]
-    display_missing_journals(missing_journals)
-
-def display_missing_journals(missing_journals):
-    """Displays all the missing journals in a new window"""
-
-    missing = Tk()
-    missing.geometry("500x400")
-    missing_heading = Label(missing, text="The following Journals haven't arrived yet:")
-    missing_heading.config(font=("Courier", 12))
-    missing_heading.place(relx=0.5, rely=0.1, anchor=CENTER)
-    y = 0.2
-    count = 1
-    for each in missing_journals:
-        # Journal Name,Publish Date,Publisher Type,Date of Booking,Duration,Expiry Date
-        missing_journal_label = Label(missing, text=str(count) + ". " + each[0] + ", booked on: " +  each[3])
-        missing_journal_label.place(relx=0.5, rely=y, anchor=CENTER)
-        y+=0.1
-        count += 1
-
-    missing.mainloop()
-
-def Admin():
-    """Admin Panel which displays all commands for admin"""
-
-    admin_panel = Tk()
-    admin_panel.geometry("500x400")
-
-    welcome_label = Label(admin_panel, text="Welcome, Admin")
-    welcome_label.config(font=("Courier", 18))
-    welcome_label.place(relx=0.5, rely=0.2, anchor=CENTER)
-
-    review = Button(admin_panel, text="Review Missing Journals", command=calculate_missing_journals)
-    review.place(relx=0.35, rely=0.4, anchor=CENTER)
-
-    arrival_date_button = Button(admin_panel, text="Add arrival date", command=ArrivalDate)
-    arrival_date_button.place(relx=0.65, rely=0.4, anchor=CENTER)
-
-    book_journal_button = Button(admin_panel, text="Book Journal", command=BookJournal)
-    book_journal_button.place(relx=0.35, rely=0.5, anchor=CENTER)
-
-    admin_panel.mainloop()
-
 def Publisher():
     """Publisher window which contains publish journal, logout"""
 
+    def logout_publisher():
+        """Destroys the window and opens the login screen"""
+
+        publisher_panel.destroy()
+        Login()
+
     publisher_panel = Tk()
     publisher_panel.geometry("500x400")
+    publisher_panel.title("Publisher - NCSIT Journal Tracking System")
 
     welcome_label = Label(publisher_panel, text="Welcome, Publisher")
     welcome_label.config(font=("Courier", 18))
@@ -260,7 +296,7 @@ def Publisher():
 
     publish_journal = Button(publisher_panel, text="Publish Journal", command=PublishJournal)
     publish_journal.place(relx=0.4, rely=0.4, anchor=CENTER)
-    logout = Button(publisher_panel, text="Logout", command=publisher_panel.destroy)
+    logout = Button(publisher_panel, text="Logout", command=logout_publisher)
     logout.place(relx=0.6, rely=0.4, anchor=CENTER)
     publisher_panel.mainloop()
 
@@ -271,18 +307,28 @@ def PublishJournal():
     file = open("published_journals.csv", 'a', newline='')
     writer = csv.writer(file)
 
+    def on_closing():
+        """Closes the files and flushes the buffer"""
+
+        file.close()
+        publish_window.destroy()
+
     def publish_journal():
         """Publishes the journal and adds it in a csv file published_journals"""
 
         journal_name = journal_name_entry.get()
         publish_date = publish_date_entry.get()
         publisher_type = btn.get()
+
         writer.writerow([journal_name, publish_date, publisher_type])
+        tkinter.messagebox.showinfo("Success", "The Journal was successfully published")
 
     published_journals = []
     # Tk doesn't work here so we use Tk()
     publish_window = Toplevel()
+    publish_window.title("Publish Journal - NCSIT Journal Tracking System")
     btn = StringVar()
+    btn.set("Indian")
     publish_window.geometry("500x400")
 
     welcome_label = Label(publish_window, text="Enter Journal Details")
@@ -309,8 +355,7 @@ def PublishJournal():
     publish_button = Button(publish_window, text="Publish Journal", command=publish_journal)
     publish_button.place(relx=0.5, rely=0.7, anchor=CENTER)
 
+    publish_window.protocol("WM_DELETE_WINDOW", on_closing)
     publish_window.mainloop()
 
 Login()
-# Admin()
-# Publisher()
