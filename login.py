@@ -1,6 +1,9 @@
+import os
 from tkinter import *
+from tempfile import NamedTemporaryFile
 import tkinter.messagebox
 import datetime
+import shutil
 import csv
 
 def Login():
@@ -13,11 +16,9 @@ def Login():
         password = password_entry.get()
 
         if user_name == "admin" and password == "root":
-            print("Hello Admin")
             login.destroy()
             Admin()
         elif user_name == "publisher" and password == "publisher":
-            print("Hello Publisher")
             login.destroy()
             Publisher()
         else:
@@ -35,14 +36,17 @@ def Login():
 
     user_name_entry = Entry(login)
     password_entry = Entry(login, show="*")
+
     submit_button = Button(login, text="Login", fg="blue", command=validate)
+    exit_button = Button(login, text="Exit", command=login.destroy)
 
     login_label.place(relx=0.5, rely=0.3, anchor=CENTER)
     user_name_label.place(relx=0.4, rely=0.4, anchor=CENTER)
     user_name_entry.place(relx=0.6, rely=0.4, anchor=CENTER)
     password_label.place(relx=0.4, rely=0.5, anchor=CENTER)
     password_entry.place(relx=0.6, rely=0.5, anchor=CENTER)
-    submit_button.place(relx=0.5, rely=0.6, anchor=CENTER)
+    submit_button.place(relx=0.48, rely=0.6, anchor=CENTER)
+    exit_button.place(relx=0.58, rely=0.6, anchor=CENTER)
 
     login.mainloop()
 
@@ -72,8 +76,11 @@ def Admin():
     book_journal_button = Button(admin_panel, text="Book Journal", command=BookJournal)
     book_journal_button.place(relx=0.35, rely=0.5, anchor=CENTER)
 
+    renewal_button = Button(admin_panel, text="Renew Subscription", command=renew_subscription)
+    renewal_button.place(relx=0.65, rely=0.5, anchor=CENTER)
+
     logout_button = Button(admin_panel, text="Logout", command=logout_admin)
-    logout_button.place(relx=0.65, rely=0.5, anchor=CENTER)
+    logout_button.place(relx=0.5, rely=0.6, anchor=CENTER)
 
     admin_panel.mainloop()
 
@@ -151,6 +158,14 @@ def ArrivalDate():
     window.geometry("500x400")
     window.title("Add Arrival Date - NCSIT Journal Tracking System")
 
+    if os.path.exists("arrived_journals.csv"):
+        pass
+    else:
+        file = open("arrived_journals.csv", 'w', newline='')
+        writer = csv.writer(file)
+        writer.writerow(["Journal Name", "Arrival Date"])
+        file.close()
+
     file = open("arrived_journals.csv", 'a', newline='')
     writer = csv.writer(file)
 
@@ -197,6 +212,14 @@ def BookJournal():
     book_window.title("Book Journal - NCSIT Journal Tracking System")
     booked_journals = []
 
+    if os.path.exists("booked_journals.csv"):
+        pass
+    else:
+        file = open("booked_journals.csv", 'w', newline='')
+        writer = csv.writer(file)
+        writer.writerow(["Journal Name", "Publish Date", "Publisher Type", "Date of Booking", "Duration", "Expiry Date"])
+        file.close()
+
     file = open("booked_journals.csv", 'a', newline='')
     writer = csv.writer(file)
 
@@ -227,11 +250,11 @@ def BookJournal():
         if duration == "Monthly":
             expiry_date = datetime.datetime.today() + datetime.timedelta(30)
         elif duration == "Bi-Monthly":
-            expiry_date = datetime.datetime.today() + datetime.timedelta(15)
+            expiry_date = datetime.datetime.today() + datetime.timedelta(60)
         elif duration == "Quarterly":
             expiry_date = datetime.datetime.today() + datetime.timedelta(120)
         elif duration == "Half Yearly":
-            expiry_date = datetime.datetime.today() + datetime.timedelta(365)
+            expiry_date = datetime.datetime.today() + datetime.timedelta(182)
 
         formatted_date_of_booking = datetime.datetime.strftime(date_of_booking, "%d/%m/%Y")
         formatted_expiry_date = datetime.datetime.strftime(expiry_date, "%d/%m/%Y")
@@ -277,6 +300,51 @@ def BookJournal():
     book_window.protocol("WM_DELETE_WINDOW", on_closing)
     book_window.mainloop()
 
+def renew_subscription():
+    """Creates a temporary file to store the updated file and then renames it to original booked_journals.csv"""
+
+    filename = 'booked_journals.csv'
+    tempfile1 = "temp_booked_journals.csv"
+    #
+    # with open(filename, 'r', newline='') as csvFile, tempfile:
+    csvFile = open(filename, newline='')
+    tempfile = open(tempfile1, 'w', newline='')
+    reader = csv.reader(csvFile)
+    writer = csv.writer(tempfile)
+    header = next(reader)
+    writer.writerow(["Journal Name","Publish Date","Publisher Type","Date of Booking","Duration","Expiry Date"])
+    global exp_date
+    updated_journals = []
+
+    for row in reader:
+        # Journal Name,Publish Date,Publisher Type,Date of Booking,Duration,Expiry Date
+        exp_date = datetime.datetime.strptime(row[5], "%d/%m/%Y")
+
+        if (exp_date - datetime.datetime.today()).days <= 30:
+            updated_journals.append(row[0])
+            if row[4] == "Monthly":
+                exp_date = exp_date + datetime.timedelta(30)
+            elif row[4] == "Bi-Monthly":
+                exp_date = exp_date + datetime.timedelta(60)
+            elif row[4] == "Quarterly":
+                exp_date = exp_date + datetime.timedelta(120)
+            elif row[4] == "Half Yearly":
+                exp_date = exp_date + datetime.timedelta(182)
+        formatted_exp_date = datetime.datetime.strftime(exp_date, "%d/%m/%Y")
+        writer.writerow([row[0], row[1], row[2], row[3], row[4], formatted_exp_date])
+
+    csvFile.close()
+    tempfile.close()
+    shutil.move(tempfile1, filename)
+    if(len(updated_journals) > 0):
+        s = ""
+        count = 1
+        for each in updated_journals:
+            s += str(count) + ". " + each + "\n"
+        tkinter.messagebox.showinfo("Success", "The Subscription of the following Journals was renewed:\n" + s)
+    else:
+        tkinter.messagebox.showinfo("Success", "All Subcriptions are already up-to-date.")
+
 def Publisher():
     """Publisher window which contains publish journal, logout"""
 
@@ -303,6 +371,14 @@ def Publisher():
 def PublishJournal():
     """Publish Journal window which takes journal name, publish_date and publisher_type from user
     and stores them in published_journals"""
+
+    if os.path.exists("published_journals.csv"):
+        pass
+    else:
+        file = open("published_journals.csv", 'w', newline='')
+        writer = csv.writer(file)
+        writer.writerow(["Journal Name", "Publish Date", "Publisher Type"])
+        file.close()
 
     file = open("published_journals.csv", 'a', newline='')
     writer = csv.writer(file)
