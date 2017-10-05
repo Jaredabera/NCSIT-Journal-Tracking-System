@@ -73,7 +73,7 @@ def Admin():
     arrival_date_button = Button(admin_panel, text="Add arrival date", command=ArrivalDate)
     arrival_date_button.place(relx=0.65, rely=0.4, anchor=CENTER)
 
-    book_journal_button = Button(admin_panel, text="Book Journal", command=BookJournal)
+    book_journal_button = Button(admin_panel, text="Journal Reservation", command=BookJournal)
     book_journal_button.place(relx=0.35, rely=0.5, anchor=CENTER)
 
     renewal_button = Button(admin_panel, text="Renew Subscription", command=renew_subscription)
@@ -209,7 +209,7 @@ def BookJournal():
 
     book_window = Tk()
     book_window.geometry("500x400")
-    book_window.title("Book Journal - NCSIT Journal Tracking System")
+    book_window.title("Journal Reservation - NCSIT Journal Tracking System")
     booked_journals = []
 
     if os.path.exists("booked_journals.csv"):
@@ -262,7 +262,7 @@ def BookJournal():
         writer.writerow([journal_name, pub_date, pub_type, formatted_date_of_booking, duration, formatted_expiry_date])
         tkinter.messagebox.showinfo("Success", "The Journal was successfully booked")
 
-    heading = Label(book_window, text="Book Journal")
+    heading = Label(book_window, text="Journal Reservation")
     heading.config(font=("Courier", 20))
     heading.place(relx=0.5, rely=0.2, anchor=CENTER)
 
@@ -294,7 +294,7 @@ def BookJournal():
     journal_options_select = OptionMenu(book_window, j_names, *journal_options)
     journal_options_select.place(relx=0.52, rely=0.4, anchor=W)
 
-    book_button = Button(book_window, text="Book Journal", command=book_journal)
+    book_button = Button(book_window, text="Submit", command=book_journal)
     book_button.place(relx=0.5, rely=0.6, anchor=CENTER)
 
     book_window.protocol("WM_DELETE_WINDOW", on_closing)
